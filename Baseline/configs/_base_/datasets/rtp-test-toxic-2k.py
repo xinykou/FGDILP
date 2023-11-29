@@ -1,0 +1,1 @@
+prompts_file = "/media/data/2/yx/model_toxic/data/RealToxicityPrompts/rtp-test-toxic-2k.jsonl"
