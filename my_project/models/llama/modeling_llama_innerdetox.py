@@ -205,6 +205,11 @@ class LlamaMLP(nn.Module):
         self.down_proj = nn.Linear(self.intermediate_size, self.hidden_size, bias=False)
         self.act_fn = ACT2FN[config.hidden_act]
 
+        self.before_action = nn.Identity() if config.hook_position == 'before_action' else None
+        self.after_action = nn.Identity() if config.hook_position == 'after_action' else None
+        self.before_linear = nn.Identity() if config.hook_position == 'before_linear' else None
+        self.after_linear = nn.Identity() if config.hook_position == 'after_linear' else None
+
     def forward(self, x):
         if self.config.pretraining_tp > 1:
             slice = self.intermediate_size // self.config.pretraining_tp
@@ -223,9 +228,27 @@ class LlamaMLP(nn.Module):
             ]
             down_proj = sum(down_proj)
         else:
-            down_proj = self.down_proj(self.act_fn(self.gate_proj(x)) * self.up_proj(x))
+            if self.before_linear is not None:
+                x = self.before_linear(x)
 
-        return down_proj
+            tmp = self.gate_proj(x)
+
+            if self.before_action is not None:
+                tmp = self.before_action(tmp)
+
+            tmp = self.act_fn(tmp)
+            tmp_0 = self.up_proj(x)
+
+            if self.after_action is not None:
+                tmp = self.after_action(tmp * tmp_0)
+                tmp = self.down_proj(tmp)
+            else:
+                tmp = self.down_proj(tmp * tmp_0)
+
+            if self.after_linear is not None:
+                tmp = self.after_linear(tmp)
+
+        return tmp
 
 
 def repeat_kv(hidden_states: torch.Tensor, n_rep: int) -> torch.Tensor:
@@ -263,7 +286,7 @@ class LlamaAttention(nn.Module):
         self.k_proj = nn.Linear(self.hidden_size, self.num_key_value_heads * self.head_dim, bias=False)
         self.v_proj = nn.Linear(self.hidden_size, self.num_key_value_heads * self.head_dim, bias=False)
 
-        self.before_mergehead = nn.Identity()
+        self.before_mergehead = nn.Identity() if config.hook_position == "before_mergehead" else None
 
         self.o_proj = nn.Linear(self.num_heads * self.head_dim, self.hidden_size, bias=False)
         self._init_rope()
@@ -376,8 +399,8 @@ class LlamaAttention(nn.Module):
                 f"`attn_output` should be of size {(bsz, self.num_heads, q_len, self.head_dim)}, but is"
                 f" {attn_output.size()}"
             )
-
-        attn_output = self.before_mergehead(attn_output)  # TODO: 为了记录 最后一个位置
+        if self.before_mergehead is not None:
+            attn_output = self.before_mergehead(attn_output)  # TODO: 为了记录 最后一个位置
 
         attn_output = attn_output.transpose(1, 2).contiguous()
         attn_output = attn_output.reshape(bsz, q_len, self.hidden_size)

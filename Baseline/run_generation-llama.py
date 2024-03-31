@@ -1,5 +1,6 @@
 import argparse
 import os.path as osp
+import os
 import pickle as pkl
 import sys
 from functools import partial
@@ -16,18 +17,17 @@ from utils import batchify, repeat_interleave
 from models.llama.innerdetox_hook import InnerDetoxHook
 from transformers import LlamaForCausalLM, LlamaTokenizer
 from models.llama.modeling_llama_innerdetox import LlamaForCausalLMInnerdetox
-
+import random
 
 
 def run_innerdetox(config, prompts):
-    tokenizer = LlamaTokenizer.from_pretrained(config.model_path)
+    tokenizer = AutoTokenizer.from_pretrained(config.model_path)
     tokenizer.pad_token = tokenizer.eos_token
     tokenizer.padding_side = 'left'
 
-    model = LlamaForCausalLMInnerdetox.from_pretrained(config.model_path, torch_dtype=torch.float16)
+    model = LlamaForCausalLMInnerdetox.from_pretrained(config.model_path, torch_dtype=torch.bfloat16, device_map='auto')
     model.config.pad_token_id = model.config.eos_token_id
     model.generation_config.pad_token_id = model.config.eos_token_id
-    model.to('cuda')
     model.eval()
 
     neg_prompt = config.neg_prompts[config.neg_prompt_idx]
@@ -47,7 +47,8 @@ def run_innerdetox(config, prompts):
 
     generations = []
     i = 0
-    pbar = tqdm(batchify(prompts, config.batch_size), total=len(prompts))
+    model_name = config.model_path.split('/')[-1]
+    pbar = tqdm(batchify(prompts, config.batch_size), total=len(prompts), desc=f"run innerdetox generations by ({model_name})")
     for prompt in pbar:
         prompt_w_prefix = [pos_prompt + p for p in prompt] + [
             neg_prompt + p for p in prompt
@@ -89,19 +90,19 @@ def run_innerdetox(config, prompts):
         pbar.update(len(prompt))
         i += len(prompt)
 
+    pbar.close()
     print("-----生成完成------")
     return generations
 
 
 def run_llama(config, prompts):
-    tokenizer = LlamaTokenizer.from_pretrained(config.model_path)
+    tokenizer = AutoTokenizer.from_pretrained(config.model_path)
     tokenizer.pad_token = tokenizer.eos_token
     tokenizer.padding_side = 'left'
 
-    model = LlamaForCausalLM.from_pretrained(config.model_path,torch_dtype=torch.float16)
+    model = LlamaForCausalLM.from_pretrained(config.model_path, torch_dtype=torch.bfloat16, device_map='auto')
     model.config.pad_token_id = model.config.eos_token_id
     model.generation_config.pad_token_id = model.config.eos_token_id
-    model.to('cuda')
     model.eval()
 
     config.generation_config['eos_token_id'] = model.config.eos_token_id
@@ -109,7 +110,8 @@ def run_llama(config, prompts):
     prompt_prefix = config.get('prompt_prefix', '')
 
     generations = []
-    pbar = tqdm(batchify(prompts, config.batch_size), total=len(prompts))
+    model_name = config.model_path.split('/')[-1]
+    pbar = tqdm(batchify(prompts, config.batch_size), total=len(prompts), desc=f"run org generations by ({model_name})")
     for prompt in pbar:
         prompt = [prompt_prefix + p for p in prompt]
         inputs = tokenizer(prompt, return_tensors='pt', padding=True)
@@ -128,9 +130,9 @@ def run_llama(config, prompts):
 
         generations.extend(generation)
         pbar.update(len(prompt))
+
+    pbar.close()
     return generations
-
-
 
 
 if __name__ == "__main__":
@@ -138,37 +140,59 @@ if __name__ == "__main__":
     parser.add_argument("--config",
                         default="configs/innerdetox/innerdetox-llama-ne0.4-nse0.6-renorm_np0-pp0_rtp-test-toxic-2k.py",
                         type=str)
+    parser.add_argument("--fn",
+                        default=None,
+                        type=str)
     parser.add_argument("--new_model_type",
                         default="innerdetox",   # base_model or innerdetox
                         type=str)
+    parser.add_argument("--eval_num",
+                        default=None,
+                        type=int)
+    parser.add_argument("--ablation",
+                        action="store_true")
+
     args = parser.parse_args()
 
     config = Config.fromfile(args.config)
-    config.model_type = args.new_model_type
+    if 'model_type' in config:
+        pass
+    else:
+        config.model_type = args.new_model_type
+
     set_seed(config.seed)
 
-    fn = ".".join(osp.basename(args.config).split('.')[:-1])
-    output_fp = f'results/{fn}.jsonl'
-
     print(f'Running generation on {args.config} ...')
-    print(f'model_type: {config.model_type}')
+    print(f'config: --------->')
+    config_dict = config.to_dict()
+    for key, value in config_dict.items():
+        print(key, value)
 
-    data = jsl.open(config.prompts_file)
-    prompts = [d['prompt']['text'] for d in data]
+    fn = args.fn
+    os.makedirs(fn, exist_ok=True)
+    fp = ".".join(osp.basename(args.config).split('.')[:-1])
+    output_fp = f'{fn}/{fp}.jsonl'
 
+    if args.ablation:
+        prompts = []
+        data = list(jsl.open(config.prompts_file))
+        selected_indices = random.sample(range(len(data)), args.eval_num)  # 选择相同的位置
+        for index in selected_indices:
+            prompts.append(data[index]['prompt']['text'])
+
+    else:
+        data = jsl.open(config.prompts_file)
+        prompts = [d['prompt']['text'] for d in data]
 
     if config.model_type == 'innerdetox':
-        gen_fn = run_innerdetox
+        generations = run_innerdetox(config, list(repeat_interleave(prompts, config.num_k_samples)))
     elif config.model_type == 'base_model':
-        gen_fn = run_llama
+        generations = run_llama(config, list(repeat_interleave(prompts, config.num_k_samples)))
     else:
         raise NotImplementedError
 
-    generations = gen_fn(config, list(repeat_interleave(prompts, config.num_k_samples)))
-
     result = []
     for i in range(len(prompts)):
-        print()
         result.append(
             dict(
                 prompt=dict(text=prompts[i]),

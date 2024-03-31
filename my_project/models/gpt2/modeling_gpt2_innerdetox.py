@@ -164,7 +164,8 @@ class GPT2Attention(nn.Module):
         else:
             self.c_attn = Conv1D(3 * self.embed_dim, self.embed_dim)
         
-        self.before_mergehead = nn.Identity()
+        self.before_mergehead = nn.Identity() if config.hook_position == 'before_mergehead' else None
+
         self.c_proj = Conv1D(self.embed_dim, self.embed_dim)
 
         self.attn_dropout = nn.Dropout(config.attn_pdrop)
@@ -339,7 +340,8 @@ class GPT2Attention(nn.Module):
             attn_output, attn_weights = self._attn(query, key, value, attention_mask, head_mask)
 
         # for hook convience
-        attn_output = self.before_mergehead(attn_output)
+        if self.before_mergehead is not None:  # todo:
+            attn_output = self.before_mergehead(attn_output)
 
         attn_output = self._merge_heads(attn_output, self.num_heads, self.head_dim)
         # try:
@@ -364,10 +366,32 @@ class GPT2MLP(nn.Module):
         self.act = ACT2FN[config.activation_function]
         self.dropout = nn.Dropout(config.resid_pdrop)
 
+        self.before_mlp_action = nn.Identity() if config.hook_position == 'before_mlp_action' else None  #
+        self.after_mlp_action = nn.Identity() if config.hook_position == 'after_mlp_action' else None  # invalid
+        self.before_c_cf = nn.Identity() if config.hook_position == 'before_c_cf' else None  # invalid
+        self.after_c_proj = nn.Identity() if config.hook_position == 'after_c_proj' else None  # invalid
+
+
+
     def forward(self, hidden_states: Optional[Tuple[torch.FloatTensor]]) -> torch.FloatTensor:
+        if self.before_c_cf is not None:
+            hidden_states = self.before_c_cf(hidden_states)  # todo: hook
+
         hidden_states = self.c_fc(hidden_states)
+
+        if self.before_mlp_action is not None:
+            hidden_states = self.before_mlp_action(hidden_states)
+
         hidden_states = self.act(hidden_states)
+
+        if self.after_mlp_action is not None:
+            hidden_states = self.after_mlp_action(hidden_states)  # todo: hook
+
         hidden_states = self.c_proj(hidden_states)
+
+        if self.after_c_proj is not None:
+            hidden_states = self.after_c_proj(hidden_states)
+
         hidden_states = self.dropout(hidden_states)
         return hidden_states
 

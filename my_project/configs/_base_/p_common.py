@@ -7,6 +7,7 @@ generation_config = dict(
     min_new_tokens=5,
     top_p=0.9,
     do_sample=True,
+    remove_invalid_values=True
 )
 
 

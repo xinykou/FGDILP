@@ -1,33 +1,41 @@
-from transformers import AutoTokenizer, AutoModelForSequenceClassification, GPT2LMHeadModel, GenerationConfig
+from transformers import AutoTokenizer, AutoModelForSequenceClassification, GPT2LMHeadModel, GenerationConfig, LlamaForCausalLM, LlamaTokenizer
 from tqdm import tqdm
 import torch
 import sys
 sys.path.append("/media/data/2/yx/model_toxic/my_project/models/others")
 from my_project.utils import batchify, repeat_interleave
 from base import Base_M
+import random
 
-class Default_GPT(Base_M):
+class Default_GPT_or_Llama(Base_M):
     def __init__(self, config):
-        super(Default_GPT, self).__init__(config)
+        super(Default_GPT_or_Llama, self).__init__(config)
 
         self.config = config
         self.tokenizer = AutoTokenizer.from_pretrained(self.config.model_path)
         self.tokenizer.pad_token = self.tokenizer.eos_token
         self.tokenizer.padding_side = 'left'
 
-        self.model = GPT2LMHeadModel.from_pretrained(self.config.model_path)
+        if 'gpt2' in config.model_path:
+            self.model = GPT2LMHeadModel.from_pretrained(self.config.model_path)
+            self.model.to('cuda')
+        elif 'llama' in config.model_path or 'vicuna' in config.model_pathor:
+            self.model = LlamaForCausalLM.from_pretrained(self.config.model_path, torch_dtype=torch.bfloat16, device_map='auto')
+        else:
+            raise ValueError('model_path must be gpt2 or llama')
+
         self.model.config.pad_token_id = self.model.config.eos_token_id
         self.model.generation_config.pad_token_id = self.model.config.eos_token_id
-        self.model.to('cuda')
+        config.generation_config['eos_token_id'] = self.model.config.eos_token_id
         self.model.eval()
 
-    def run_gpt2(self, prompts):
-
+    def run_gpt2_or_llama(self, prompts):
+        model_name = self.config.model_path.split('/')[-1]
         self.config.generation_config['eos_token_id'] = self.model.config.eos_token_id
 
         prompt_prefix = self.config.get('prompt_prefix', '')
         generations = []
-        pbar = tqdm(batchify(prompts, self.config.batch_size), total=len(prompts), desc='run_gpt2 for org generations')
+        pbar = tqdm(batchify(prompts, self.config.org_gen_batch_size), total=len(prompts), desc=f'run ({model_name}) for org generations')
         for prompt in pbar:
             prompt = [prompt_prefix + p for p in prompt]
             inputs = self.tokenizer(prompt, return_tensors='pt', padding=True)
@@ -43,7 +51,6 @@ class Default_GPT(Base_M):
             generation = self.tokenizer.batch_decode(
                 generation[:, prompt_len:], skip_special_tokens=True
             )
-
             generations.extend(generation)
             pbar.update(len(prompt))
         # 释放模型资源
@@ -64,7 +71,7 @@ class Default_GPT(Base_M):
 
         scores = []
         batch_size = 256
-        pbar = tqdm(batchify(continuations, batch_size), total=len(continuations), desc='run_toxicity_evaluation for generations')
+        pbar = tqdm(batchify(continuations, batch_size), total=len(continuations), desc='run_toxicity_evaluation with (deberta-v3-large_toxicity-scorer)')
         for c_texts in pbar:
             inputs = tokenizer(c_texts, padding=True, return_tensors='pt')
             inputs = {k: v.to('cuda') for k, v in inputs.items()}
@@ -105,6 +112,24 @@ class Default_GPT(Base_M):
                     continuations_nontoxic=[]
                 )
         return filter_results
+
+
+    def random_select(self, filter_results, p_num, seed=None):
+        # 随机选择毒性和非毒性的样本
+        num_toxic_total = 0
+        num_nontoxic_total = 0
+        num_total = len(filter_results)
+        max_toxic_index_list = [dict(ids=None) for _ in range(num_total)]
+        min_nontoxic_index_list = [dict(ids=None) for _ in range(num_total)]
+        random.seed(seed)
+        for ids, samp in enumerate(filter_results):
+            candidates = samp['continuations_toxic'] + samp['continuations_nontoxic']
+            selected_indices = random.sample(range(len(candidates)), p_num+1)  # 选择相同的位置
+            max_toxic_index_list[ids]['ids'] = selected_indices[:p_num]
+            min_nontoxic_index_list[ids]['ids'] = selected_indices[p_num:]
+
+        return self.prefix_build_with_global(filter_results, max_toxic_index_list, min_nontoxic_index_list, p_num)
+
 
     def rank_and_select(self, filter_results, p_num):
         # ---- 最终使用的那个 毒性输出/ 非毒性输出 位置： 只使用毒性最大的多个样本 和 毒性最小的那个样本的位置----
@@ -169,6 +194,9 @@ class Default_GPT(Base_M):
     def delete(self):
         if hasattr(self, 'model'):
             self.model.to('cpu')  # 将模型转移到 CPU
-            del self.model  # 从命名空间中删除模型变量
+            try:
+                del self.model  # 从命名空间中删除模型变量
+            except:
+                print("model delete error !")
 
 

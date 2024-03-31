@@ -57,10 +57,15 @@ class Base_M:
                                instructions=dict(pos_ins=' ', neg_ins=' '))
             instructs = dict(pos_ins=None, neg_ins=None)
             global_prompts = samp['continuations_toxic'] + samp['continuations_nontoxic']
-            position_0 = min_nontoxic_index_list[ids]['ids'][0]
+
             # 毒性最小的那个作为 正样本
-            li = [global_prompts[position_0]['text'] for _ in range(p_num)]
+            position_0 = min_nontoxic_index_list[ids]['ids']
+            li = [global_prompts[ids]['text'] for ids in position_0]
+            if len(li) < p_num:
+                for _ in range(p_num - len(li)):
+                    li.append(' ')
             instructs['pos_ins'] = li
+
             # 毒性较大的那些 负样本
             position_1 = max_toxic_index_list[ids]['ids']
             if 'neg_using_max' in self.config:

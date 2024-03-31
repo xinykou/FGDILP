@@ -1,4 +1,5 @@
 import argparse
+import os
 import os.path as osp
 import pickle as pkl
 import sys
@@ -17,7 +18,7 @@ from models.gpt2.innerdetox_hook import InnerDetoxHook
 from models.gpt2.modeling_gpt2_dexperts import GPT2LMHeadModelDExperts
 from models.gpt2.modeling_gpt2_gedi import GPT2LMHeadModelGeDi
 from models.gpt2.modeling_gpt2_innerdetox import GPT2LMHeadModelInnerdetox
-
+import random
 
 def run_dexperts(config, prompts):
     tokenizer = AutoTokenizer.from_pretrained(config.model_path)
@@ -127,7 +128,7 @@ def run_innerdetox(config, prompts):
         generations.extend(generation)
         pbar.update(len(prompt))
         i += len(prompt)
-
+    pbar.close()
     print("-----生成完成------")
     return generations
 
@@ -167,6 +168,7 @@ def run_gpt2(config, prompts):
 
         generations.extend(generation)
         pbar.update(len(prompt))
+    pbar.close()
     return generations
 
 
@@ -220,6 +222,7 @@ def run_gedi(config, prompts):
 
         generations.extend(generation)
         pbar.update(len(prompt))
+    pbar.close()
     return generations
 
 
@@ -228,18 +231,37 @@ if __name__ == "__main__":
     parser.add_argument("--config",
                         default="configs/innerdetox/innerdetox-gpt2-l-ne0.4-nse0.6-renorm_np0-pp0_rtp-test-toxic-2k.py",
                         type=str)
+    parser.add_argument("--fn",
+                        default=None,
+                        type=str)
+    parser.add_argument("--eval_num",
+                        default=None,
+                        type=int)
+    parser.add_argument("--ablation",
+                        action="store_true")
+
     args = parser.parse_args()
 
     config = Config.fromfile(args.config)
+
     set_seed(config.seed)
 
-    fn = ".".join(osp.basename(args.config).split('.')[:-1])
-    output_fp = f'results/{fn}.jsonl'
+    fp = ".".join(osp.basename(args.config).split('.')[:-1])
+    os.makedirs(args.fn, exist_ok=True)
+    output_fp = f'{args.fn}/{fp}.jsonl'
 
     print(f'Running generation on {args.config} ...')
 
-    data = jsl.open(config.prompts_file)
-    prompts = [d['prompt']['text'] for d in data]
+    if args.ablation:
+        prompts = []
+        data = list(jsl.open(config.prompts_file))
+        selected_indices = random.sample(range(len(data)), args.eval_num)  # 选择相同的位置
+        for index in selected_indices:
+            prompts.append(data[index]['prompt']['text'])
+
+    else:
+        data = jsl.open(config.prompts_file)
+        prompts = [d['prompt']['text'] for d in data]
 
     if config.model_type == 'dexperts':
         gen_fn = run_dexperts
@@ -256,7 +278,6 @@ if __name__ == "__main__":
 
     result = []
     for i in range(len(prompts)):
-        print()
         result.append(
             dict(
                 prompt=dict(text=prompts[i]),

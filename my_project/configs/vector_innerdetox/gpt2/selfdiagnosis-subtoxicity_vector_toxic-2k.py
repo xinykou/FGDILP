@@ -6,7 +6,13 @@ prompts_file = "/media/data/2/yx/model_toxic/data/RealToxicityPrompts/rtp-test-t
 model_type = 'selfdiagnosis-subtoxicity_vector_innerdetox'
 
 model_path = '/media/data/1/yx/data/model_cache/gpt2-large'
-batch_size = 16  # negative samples 3 --> 32, negative samples 6 --> 16
+ppl_model_path = '/media/data/1/yx/data/model_cache/gpt2-xl'
+
+org_gen_batch_size = 64
+scorer_batch_size = 12
+batch_size = 16
+ppl_batch_size = 16
+toxicity_batch_size = 64
 
 neg_prompt_idx = 1  # np
 pos_prompt_idx = 1  # pp
@@ -17,7 +23,7 @@ innerdetox_hook = dict(
     norm_exp=0.4,  # ne
     neg_sim_exp=0.6,  # nse
     renorm=True,
-    vector_method='mergingtopk50_normmass_dis-max'  # mergingtopk50_normmass_dis-max; mean ;  20_mass_dis-mean ;
+    vector_method='mergingtopk10_normmass_dis-max'  # mergingtopk50_normmass_dis-max; mean ;  20_mass_dis-mean ;
 )
 
 prompt_type = "toxic"
