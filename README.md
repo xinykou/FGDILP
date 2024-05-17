@@ -198,3 +198,6 @@ We would like to thank the authors of the following repositories:
 - [SDTVR](https://github.com/cooperleong00/ToxificationReversal)
 - [GOODTRIEVER](https://github.com/for-ai/goodtriever)
 - [DEXPERTS](https://github.com/alisawuffles/DExperts)
+- [ParaDetox](https://github.com/s-nlp/paradetox)
+- [APPDIA](https://github.com/sabithsn/APPDIA-Discourse-Style-Transfer)
+- [COUNT](https://github.com/D3Mlab/count-style-transfer)
