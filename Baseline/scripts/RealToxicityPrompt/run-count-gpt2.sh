@@ -70,33 +70,33 @@ data_type="nontoxic"
 #    --fn ./Baseline/results/RealToxicityPrompt
 #
 #
-#python /media/data/2/yx/model_toxic/Baseline/run_evaluation.py \
-#    --config ./Baseline/configs/style_transfer/count-nontoxic.py \
-#    --fn /media/data/2/yx/model_toxic/Baseline/results/RealToxicityPrompt \
-#    --eval_type toxicity
-#
-#
-#python /media/data/2/yx/model_toxic/Baseline/run_evaluation.py \
-#    --config ./Baseline/configs/style_transfer/count-nontoxic.py \
-#    --fn /media/data/2/yx/model_toxic/Baseline/results/RealToxicityPrompt \
-#    --eval_type ppl
-#
-#
-#python /media/data/2/yx/model_toxic/Baseline/merge_evaluations.py \
-#    --config ./Baseline/configs/style_transfer/count-nontoxic.py \
-#    --fn /media/data/2/yx/model_toxic/Baseline/results/RealToxicityPrompt \
-#    --ppl_type gpt2-xl \
-#    --toxicity_type toxicity
+python /media/data/2/yx/model_toxic/Baseline/run_evaluation.py \
+    --config ./Baseline/configs/style_transfer/count-nontoxic.py \
+    --fn /media/data/2/yx/model_toxic/Baseline/results/RealToxicityPrompt \
+    --eval_type toxicity
 
 
-python ./Baseline/run_evaluation_sim_and_fl.py \
-       --eval_type fl \
-       --org_path ./Baseline/results/RealToxicityPrompt/gpt2-RealToxicityPrompt-${data_type}.jsonl \
-       --current_path ./Baseline/results/RealToxicityPrompt/count-${data_type}.jsonl \
-       --batch_size 128
+python /media/data/2/yx/model_toxic/Baseline/run_evaluation.py \
+    --config ./Baseline/configs/style_transfer/count-nontoxic.py \
+    --fn /media/data/2/yx/model_toxic/Baseline/results/RealToxicityPrompt \
+    --eval_type ppl
 
-python ./Baseline/run_evaluation_sim_and_fl.py \
-       --eval_type sim \
-       --org_path ./Baseline/results/RealToxicityPrompt/gpt2-RealToxicityPrompt-${data_type}.jsonl \
-       --current_path ./Baseline/results/RealToxicityPrompt/count-${data_type}.jsonl \
-       --batch_size 128
+
+python /media/data/2/yx/model_toxic/Baseline/merge_evaluations.py \
+    --config ./Baseline/configs/style_transfer/count-nontoxic.py \
+    --fn /media/data/2/yx/model_toxic/Baseline/results/RealToxicityPrompt \
+    --ppl_type gpt2-xl \
+    --toxicity_type toxicity
+
+
+#python ./Baseline/run_evaluation_sim_and_fl.py \
+#       --eval_type fl \
+#       --org_path ./Baseline/results/RealToxicityPrompt/gpt2-RealToxicityPrompt-${data_type}.jsonl \
+#       --current_path ./Baseline/results/RealToxicityPrompt/count-${data_type}.jsonl \
+#       --batch_size 128
+#
+#python ./Baseline/run_evaluation_sim_and_fl.py \
+#       --eval_type sim \
+#       --org_path ./Baseline/results/RealToxicityPrompt/gpt2-RealToxicityPrompt-${data_type}.jsonl \
+#       --current_path ./Baseline/results/RealToxicityPrompt/count-${data_type}.jsonl \
+#       --batch_size 128
