@@ -34,12 +34,10 @@ def run_appdia_or_paradetox(config, prompts=None, continuations=None):
 
     config.generation_config['eos_token_id'] = model.config.eos_token_id
 
-    prompt_prefix = config.get('prompt_prefix', '')
-
     generations = []
     pbar = tqdm(batchify(continuations, config.batch_size), total=len(continuations), desc='Generating')
     for contins in pbar:
-        contins = [prompt_prefix + c for c in contins]
+        contins = [c + ' ' + tokenizer.eos_token for c in contins]
         inputs = tokenizer(contins, return_tensors='pt', padding=True)
         inputs = {k: v.to('cuda') for k, v in inputs.items()}
 
@@ -101,7 +99,9 @@ if __name__ == "__main__":
             cont_li = d['continuations']
             continuations.extend([c['text'] for c in cont_li])
 
-    if args.transfer_name == 'appdia' or args.transfer_name == 'paradetox':
+    if (args.transfer_name == 'appdia' or
+            args.transfer_name == 'paradetox' or
+            args.transfer_name == 'count'):
         generations = run_appdia_or_paradetox(config, prompts=None, continuations=continuations)
     else:
         raise ValueError('Invalid transfer name')
