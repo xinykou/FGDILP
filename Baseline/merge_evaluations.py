@@ -85,7 +85,7 @@ if __name__ == '__main__':
     evals_ppl = list(jsl.open(eval_fp, 'r'))
     avg_ppl = get_avg_ppl(evals_ppl)
 
-    if args.toxicity_type == 'toxicity_type':
+    if args.toxicity_type == 'toxicity':
         evals_toxicity = evals_ppl
     elif args.toxicity_type == 'perspective_api_toxicity':
         evals_toxicity_fp = osp.join(f'{args.fn}', f'{fp}({args.toxicity_type}).jsonl')
