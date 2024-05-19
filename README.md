@@ -44,6 +44,19 @@ python /media/data/2/yx/model_toxic/Baseline/merge_evaluations.py \
     --fn /media/data/2/yx/model_toxic/Baseline/results/RealToxicityPrompt \
     --ppl_type gpt2-xl \
     --toxicity_type toxicity
+    
+python ./Baseline/run_evaluation_sim_and_fl.py \
+       --eval_type fl \
+       --org_path /media/data/2/yx/model_toxic/Baseline/results/RealToxicityPrompt/gpt2-RealToxicityPrompt-${data_type}.jsonl \
+       --current_path /media/data/2/yx/model_toxic/Baseline/results/RealToxicityPrompt/dapt-gpt2-l_rtp-test-${data_type}-2k.jsonl \
+       --batch_size 128
+
+python ./Baseline/run_evaluation_sim_and_fl.py \
+       --eval_type sim \
+       --org_path /media/data/2/yx/model_toxic/Baseline/results/RealToxicityPrompt/gpt2-RealToxicityPrompt-${data_type}.jsonl \
+       --current_path /media/data/2/yx/model_toxic/Baseline/results/RealToxicityPrompt/dapt-gpt2-l_rtp-test-${data_type}-2k.jsonl \
+       --batch_size 128    
+    
 ````
 We also provide the code for the following baselines:
 - ATCON
@@ -90,10 +103,25 @@ python /media/data/2/yx/model_toxic/Baseline/merge_evaluations_pair.py \
     --fn ${fn_path} \
     --ppl_type ppl_vicuna-13b-v1.5 \
     --toxicity_type perspective_api_toxicity
+    
+    
+python ./Baseline/run_evaluation_sim_and_fl.py \
+       --eval_type fl \
+       --org_path /media/data/2/yx/model_toxic/Baseline/results/ContextLevelToxicity/vicuna-ContextLevel/vicuna-ContextLevel.jsonl \
+       --current_path /media/data/2/yx/model_toxic/Baseline/results/ContextLevelToxicity/innerdetox-vicuna-ContextLevel/innerdetox-vicuna-ContextLevel.jsonl \
+       --batch_size 128
+
+python ./Baseline/run_evaluation_sim_and_fl.py \
+       --eval_type sim \
+       --org_path /media/data/2/yx/model_toxic/Baseline/results/ContextLevelToxicity/vicuna-ContextLevel/vicuna-ContextLevel.jsonl \
+       --current_path /media/data/2/yx/model_toxic/Baseline/results/ContextLevelToxicity/innerdetox-vicuna-ContextLevel/innerdetox-vicuna-ContextLevel.jsonl \
+       --batch_size 128    
+    
 ````
 We also provide the code for the following baselines:
 - GOODTRIEVER
 - SD
+- SDVTR
 
 ## Our Method
 ### 1. Detoxification at utterance-level
@@ -139,7 +167,20 @@ python /media/data/2/yx/model_toxic/my_project/merge_evaluations.py \
       --fn ${fn_path} \
       --ppl_type ppl \
       --toxicity_type toxicity
+      
+python ./Baseline/run_evaluation_sim_and_fl.py \
+       --eval_type fl \
+       --org_path /media/data/2/yx/model_toxic/Baseline/results/RealToxicityPrompt/gpt2-RealToxicityPrompt-${data_type}.jsonl \
+       --current_path /media/data/2/yx/model_toxic/my_project/results/RealToxicityPrompts/selfdiagnosis-subtoxicity_vector/selfdiagnosis-subtoxicity_vector_${data_type}-2k__mergingtopk50_normmass_dis-max__.jsonl \
+       --batch_size 128
+
+python ./Baseline/run_evaluation_sim_and_fl.py \
+       --eval_type sim \
+       --org_path /media/data/2/yx/model_toxic/Baseline/results/RealToxicityPrompt/gpt2-RealToxicityPrompt-${data_type}.jsonl \
+       --current_path /media/data/2/yx/model_toxic/my_project/results/RealToxicityPrompts/selfdiagnosis-subtoxicity_vector/selfdiagnosis-subtoxicity_vector_${data_type}-2k__mergingtopk50_normmass_dis-max__.jsonl \
+       --batch_size 128
 ````
+
 
 ### 2. Detoxification at context-level
 
@@ -179,6 +220,18 @@ python /media/data/2/yx/model_toxic/my_project/merge_evaluations.py \
     --fn ${fn_path} \
     --ppl_type ppl_llama2-13b \
     --toxicity_type perspective_api_toxicity
+
+python ./Baseline/run_evaluation_sim_and_fl.py \
+       --eval_type fl \
+       --org_path /media/data/2/yx/model_toxic/Baseline/results/ContextLevelToxicity/llama2-ContextLevel/llama2-ContextLevel.jsonl \
+       --current_path /media/data/2/yx/model_toxic/my_project/results/ContextLevelToxicity/selfdiagnosis-subtoxicity_vector-llama2-ContextLevel/selfdiagnosis-subtoxicity_vector-llama2-ContextLevel__mergingtopk50_normmass_dis-max__.jsonl \
+       --batch_size 128
+
+python ./Baseline/run_evaluation_sim_and_fl.py \
+       --eval_type sim \
+       --org_path /media/data/2/yx/model_toxic/Baseline/results/ContextLevelToxicity/llama2-ContextLevel/llama2-ContextLevel.jsonl \
+       --current_path /media/data/2/yx/model_toxic/my_project/results/ContextLevelToxicity/selfdiagnosis-subtoxicity_vector-llama2-ContextLevel/selfdiagnosis-subtoxicity_vector-llama2-ContextLevel__mergingtopk50_normmass_dis-max__.jsonl \
+       --batch_size 128
 
 ````
 We also provide the code for the vicuna-7B and llama-7B-chat models.
