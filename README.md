@@ -237,7 +237,7 @@ python ./Baseline/run_evaluation_sim_and_fl.py \
 We also provide the code for the vicuna-7B and llama-7B-chat models.
 
 ## Citation
-If you find our work helpful, please consider citing our paper:
+Our paper has been accepted by ***Neurocomputing***. If you find our work helpful, please consider citing our paper:
 ````
 @article{selfdiagnosisdetoxication,
   title={Fine-Grained Detoxification via Instance-Level Prefixes for Large Language Models},
