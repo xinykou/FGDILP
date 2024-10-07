@@ -239,11 +239,16 @@ We also provide the code for the vicuna-7B and llama-7B-chat models.
 ## Citation
 Our paper has been accepted by ***Neurocomputing***. If you find our work helpful, please consider citing our paper:
 ````
-@article{selfdiagnosisdetoxication,
-  title={Fine-Grained Detoxification via Instance-Level Prefixes for Large Language Models},
-  author={Xin Yi, Linlin Wang, Xiaoling Wang, Liang He}
-    journal={arXiv preprint arXiv:https://arxiv.org/abs/2402.15202}
-    year={2024}
+@article{YI2025128684,
+title = {Fine-grained detoxification framework via instance-level prefixes for large language models},
+journal = {Neurocomputing},
+volume = {611},
+pages = {128684},
+year = {2025},
+issn = {0925-2312},
+doi = {https://doi.org/10.1016/j.neucom.2024.128684},
+url = {https://www.sciencedirect.com/science/article/pii/S0925231224014553},
+author = {Xin Yi and Linlin Wang and Xiaoling Wang and Liang He},
 }
 ````
 # Acknowledgements
